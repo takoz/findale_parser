@@ -38,9 +38,29 @@ class CompanyData:
         IndicatorDesc('ROA  ', 'roa', True, 1),
     )
 
+    _report_fields = (
+        IndicatorDesc('MARKET CAP', 'market_cap', True, 0),
+        IndicatorDesc('REVENUE', 'revenue', True, 0),
+        IndicatorDesc('PROFIT', 'profit_net', True, 0),
+        IndicatorDesc('OCF', 'cash_oper_activities_net', True, 0),
+        IndicatorDesc('ASSETS', 'total_assets', True, 0),
+        IndicatorDesc('FIXED ASSETS', 'noncur_assets', False, 0),
+        IndicatorDesc('CURRENT ASSETS', 'cur_assets', False, 0),
+        IndicatorDesc('DEBT', 'total_liab', True, 0),
+        IndicatorDesc('LONGTERM DEBT', 'long_liab', False, 0),
+        IndicatorDesc('SHORTTERM DEBT', 'short_liab', False, 0),
+        IndicatorDesc('OTHER DEBT', 'other_liab', False, 0),
+        IndicatorDesc('TOTAL EQUITY', 'total_equity', True, 0),
+        IndicatorDesc('SHAREHOLD EQUITY', 'sharehold_eq', False, 0),
+        IndicatorDesc('RESERVED EQUITY', 'reserv_eq', False, 0)
+    )
+
     _company_info_url = 'https://findale.pro/api/company?code={}'
     _company_indicators_url = (
         'https://findale.pro/api/report?company_id={}&currency={}&section=ind&type={}'
+    )
+    _company_report_url = (
+        'https://findale.pro/api/report?company_id={}&currency={}&section=rep&type={}'
     )
 
     def __init__(self, ticker, compact, report_period):
@@ -60,29 +80,24 @@ class CompanyData:
         self._data = []
 
         self._data.append(
-            CompanyDataRow('Тикер', ticker, True)
+            CompanyDataRow('TICKER', ticker, True)
         )
         self._data.append(
-            CompanyDataRow('Название', r.json()['company']['name'], True)
+            CompanyDataRow('NAME', r.json()['company']['name'], True)
         )
         self._data.append(
-            CompanyDataRow('Сектор', r.json()['company']['sector'], False)
+            CompanyDataRow('SECTOR', r.json()['company']['sector'], False)
         )
         self._data.append(
-            CompanyDataRow('Индустрия', r.json()['company']['industry'], False)
+            CompanyDataRow('INDUSTRY', r.json()['company']['industry'], False)
         )
         self._data.append(
-            CompanyDataRow('Рыночная капитализация',
-                           self.strfloat(r.json()['asset']['market_cap']),
-                           True)
-        )
-        self._data.append(
-            CompanyDataRow('Текущая стоимость акции',
+            CompanyDataRow('SHARE PRICE',
                            self.strfloat(r.json()['asset']['last_price'], 2),
                            True)
         )
 
-        r = requests.get(
+        ri = requests.get(
             self._company_indicators_url.format(
                 self._company_id, self._currency, report_period
             )
@@ -92,10 +107,19 @@ class CompanyData:
             return
 
         self._data.append(
-            CompanyDataRow('(EPS)', self.strfloat(r.json()['last_q']['last_q_data']['eps']), True)
+            CompanyDataRow('(EPS)', self.strfloat(ri.json()['last_q']['last_q_data']['eps']), True)
         )
 
-        for desc in self._indicators:
+        r = requests.get(
+            self._company_report_url.format(
+                self._company_id, self._currency, report_period
+            )
+        )
+        if r.status_code != 200:
+            print('Could not get {} info: {}'.format(ticker, r.status_code))
+            return
+
+        for desc in self._report_fields:
             self._data.append(
                 CompanyDataRow(
                     desc.title,
@@ -104,14 +128,26 @@ class CompanyData:
                 )
             )
 
+        for desc in self._indicators:
+            self._data.append(
+                CompanyDataRow(
+                    desc.title,
+                    self.strfloat(ri.json()['last_q']['last_q_data'].get(desc.name), desc.prec),
+                    desc.compact
+                )
+            )
+
         self._historical_data = []
-        for period in r.json()['data']:
+        for i, period in enumerate(r.json()['data']):
             if report_period == 'Y':
                 row = ['/{}/'.format(period['year']), ]
             else:
                 row = ['/{} {}/'.format(period['year'], period['quarter']), ]
-            for desc in self._indicators:
+            for desc in self._report_fields:
                 row.append(self.strfloat(period['data'].get(desc.name), desc.prec))
+
+            for desc in self._indicators:
+                row.append(self.strfloat(ri.json()['data'][i]['data'].get(desc.name), desc.prec))
             self._historical_data.append(row)
 
         self._valid = True
@@ -137,15 +173,15 @@ class CompanyData:
         data = []
         for r in self._historical_data:
             data.append(
-                [v for i, v in enumerate(r) if self._data[i + 6].compact]
+                [v for i, v in enumerate(r) if self._data[i + 5].compact]
             )
         return data
 
     def get_historical_offset(self):
         if self._compact:
-            return 5
+            return 4
         else:
-            return 7
+            return 6
 
     def strfloat(self, val, prec=1):
         if val is None:

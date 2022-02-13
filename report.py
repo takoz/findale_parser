@@ -26,6 +26,7 @@ def get_offset_strings(data):
 def report_console(data, historical):
     if not len(data):
         print('Dataset is empty')
+        return
 
     lens, offsets_string, hist_lens, hist_offsets_string = get_offset_strings(data)
     total_len = sum(lens) + len(lens)*len(dltr) - len(dltr)

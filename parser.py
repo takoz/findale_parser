@@ -10,7 +10,7 @@ if __name__ == '__main__':
     locale.setlocale(locale.LC_NUMERIC, 'ru_RU.utf8')
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '-c', '--compact', action='store_true', help='compact view'
+        '-a', '--all-data', action='store_true', help='report all data'
     )
     parser.add_argument(
         '-i', '--historical', action='store_true', help='show historical data'
@@ -28,7 +28,7 @@ if __name__ == '__main__':
 
     data = []
     for t in args.tickers:
-        d = CompanyData(t, args.compact, args.period)
+        d = CompanyData(t, (not args.all_data), args.period)
         if d.is_valid():
             data.append(d)
 
