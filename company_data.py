@@ -5,6 +5,7 @@ from collections import namedtuple
 import requests
 
 CompanyDataRow = namedtuple('CompanyDataRow', ['title', 'value', 'compact'])
+IndicatorDesc = namedtuple('IndicatorDesc', ['title', 'name', 'compact', 'prec'])
 
 class CompanyData:
 
@@ -21,10 +22,31 @@ class CompanyData:
 
     _compact = False
 
-    def __init__(self, ticker, compact):
+    _indicators = (
+        IndicatorDesc('P/E  ', 'p_e_rt', True, 1),
+        IndicatorDesc('P/OCF', 'p_ocf', True, 1),
+        IndicatorDesc('P/BV ', 'p_bv', True, 1),
+        IndicatorDesc('P/S  ', 'p_s_rt', True, 1),
+        IndicatorDesc('EV/EBITDA', 'ev_ebitda_rt', True, 1),
+
+        IndicatorDesc('NET DEBT/EBITDA', 'ebitda_net_rt', True, 3),
+        IndicatorDesc('DEBT/EBITDA', 'ebitda_debt_rt', True, 3),
+        IndicatorDesc('OCF/DEBT', 'ocf_debt', False, 1),
+        IndicatorDesc('OCF/equity', 'd_e_rt', False, 3),
+
+        IndicatorDesc('ROE  ', 'roe', True, 1),
+        IndicatorDesc('ROA  ', 'roa', True, 1),
+    )
+
+    _company_info_url = 'https://findale.pro/api/company?code={}'
+    _company_indicators_url = (
+        'https://findale.pro/api/report?company_id={}&currency={}&section=ind&type={}'
+    )
+
+    def __init__(self, ticker, compact, report_period):
         self._compact = compact
 
-        r = requests.get('https://findale.pro/api/company?code={}'.format(ticker))
+        r = requests.get(self._company_info_url.format(ticker))
         if r.status_code != 200:
             print('Could not get {} info: {}'.format(ticker, r.status_code))
             return
@@ -61,76 +83,36 @@ class CompanyData:
         )
 
         r = requests.get(
-            'https://findale.pro/api/report?company_id={}&currency={}&section=ind&type=Y'.format(
-                self._company_id, self._currency
+            self._company_indicators_url.format(
+                self._company_id, self._currency, report_period
             )
         )
         if r.status_code != 200:
             print('Could not get {} info: {}'.format(ticker, r.status_code))
             return
 
-        last_market_cap = r.json()['last_q']['last_q_data']['market_cap']
-        last_profit = r.json()['last_q']['last_q_data']['profit_net']
-        last_ocf = r.json()['last_q']['last_q_data']['cash_oper_activities_net']
-        last_total_equity = r.json()['last_q']['last_q_data']['total_equity']
-        last_total_assets = r.json()['last_q']['last_q_data']['total_assets']
-        last_net_debt = r.json()['last_q']['last_q_data']['debt_net']
-        last_ebitda = r.json()['last_q']['last_q_data']['ebitda']
-        last_revenue = r.json()['last_q']['last_q_data']['revenue']
-        roe = last_profit / last_total_equity * 100
-        roa = last_profit / last_total_assets * 100
-        p_e = last_market_cap / last_profit
-        p_ocf = last_market_cap / last_ocf
-        p_bv = last_market_cap / last_total_equity
-        p_s = last_market_cap / last_revenue
-        net_debt_ebitda = last_net_debt / last_ebitda
+        self._data.append(
+            CompanyDataRow('(EPS)', self.strfloat(r.json()['last_q']['last_q_data']['eps']), True)
+        )
 
-        self._historical_data = []
-        for period in r.json()['data']:
-            year = period['year']
-            p = period['data']['market_cap']
-            e = period['data']['profit_net']
-            ocf = period['data']['cash_oper_activities_net']
-            total_equity = period['data']['total_equity']
-            total_assets = period['data']['total_assets']
-            net_debt = period['data']['debt_net']
-            ebitda = period['data']['ebitda']
-            revenue = period['data']['revenue']
-
-            self._historical_data.append(
-                (
-                    '/{}/'.format(year),
-                    self.strfloat(p / e),
-                    self.strfloat(p / ocf),
-                    self.strfloat(p / total_equity),
-                    self.strfloat(p / revenue),
-                    self.strfloat(e / total_equity * 100),
-                    self.strfloat(e / total_assets * 100),
-                    self.strfloat(net_debt / ebitda, 3),
+        for desc in self._indicators:
+            self._data.append(
+                CompanyDataRow(
+                    desc.title,
+                    self.strfloat(r.json()['last_q']['last_q_data'].get(desc.name), desc.prec),
+                    desc.compact
                 )
             )
 
-        self._data.append(
-            CompanyDataRow('(P/E)', self.strfloat(p_e), True)
-        )
-        self._data.append(
-            CompanyDataRow('(P/OCF)', self.strfloat(p_ocf), True)
-        )
-        self._data.append(
-            CompanyDataRow('(P/BV)', self.strfloat(p_bv), True)
-        )
-        self._data.append(
-            CompanyDataRow('(P/S)', self.strfloat(p_s), True)
-        )
-        self._data.append(
-            CompanyDataRow('(ROE)', self.strfloat(roe), True)
-        )
-        self._data.append(
-            CompanyDataRow('(ROA)', self.strfloat(roa), True)
-        )
-        self._data.append(
-            CompanyDataRow('(NET DEBT/EBITDA)', self.strfloat(net_debt_ebitda, 3), True)
-        )
+        self._historical_data = []
+        for period in r.json()['data']:
+            if report_period == 'Y':
+                row = ['/{}/'.format(period['year']), ]
+            else:
+                row = ['/{} {}/'.format(period['year'], period['quarter']), ]
+            for desc in self._indicators:
+                row.append(self.strfloat(period['data'].get(desc.name), desc.prec))
+            self._historical_data.append(row)
 
         self._valid = True
 
@@ -150,14 +132,23 @@ class CompanyData:
             return [d.value for d in self._data]
 
     def get_historical_values(self):
-        return self._historical_data
+        if not self._compact:
+            return self._historical_data
+        data = []
+        for r in self._historical_data:
+            data.append(
+                [v for i, v in enumerate(r) if self._data[i + 6].compact]
+            )
+        return data
 
     def get_historical_offset(self):
         if self._compact:
-            return 4
+            return 5
         else:
-            return 6
+            return 7
 
     def strfloat(self, val, prec=1):
+        if val is None:
+            return '-'
         return locale.format_string('%.{}f'.format(prec), val)
 

@@ -19,13 +19,16 @@ if __name__ == '__main__':
         '-f', '--format', choices=['CONSOLE', 'CSV', 'MD'], default='CONSOLE', help='output format'
     )
     parser.add_argument(
+        '-p', '--period', choices=['Y', 'Q'], default='Y', help='historical data period'
+    )
+    parser.add_argument(
         'tickers', metavar='T', type=str, nargs='+', help='tickers'
     )
     args = parser.parse_args()
 
     data = []
     for t in args.tickers:
-        d = CompanyData(t, args.compact)
+        d = CompanyData(t, args.compact, args.period)
         if d.is_valid():
             data.append(d)
 
