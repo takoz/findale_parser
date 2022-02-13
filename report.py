@@ -62,3 +62,27 @@ def report_csv(data, historical):
             continue
         for v in d.get_historical_values():
             print(hist_offsets_string.format(*v))
+
+def report_md(data, historical):
+    dltr = '|'
+
+    if not len(data):
+        print('Dataset is empty')
+
+    row = data[0]
+
+    offsets_string = '|{}|'.format(dltr.join('{}' for t in row.get_titles()))
+    historical_values_count = len(row.get_titles()) - row.get_historical_offset() + 1
+    hist_offsets_string = '|{}{}|'.format(
+        (' ' + dltr) * (row.get_historical_offset() - 1),
+        dltr.join('{}' for i in range(historical_values_count))
+    )
+
+    print(offsets_string.format(*row.get_titles()))
+    print(offsets_string.format(*[ '---' for i in range(len(row.get_titles()))]))
+    for d in data:
+        print(offsets_string.format(*d.get_values()))
+        if not historical:
+            continue
+        for v in d.get_historical_values():
+            print(hist_offsets_string.format(*v))

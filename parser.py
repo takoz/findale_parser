@@ -3,7 +3,7 @@ import requests
 import locale
 
 from company_data import CompanyData
-from report import report_console, report_csv
+from report import report_console, report_csv, report_md
 
 
 if __name__ == '__main__':
@@ -31,5 +31,7 @@ if __name__ == '__main__':
 
     if args.format == 'CONSOLE':
         report_console(data, args.historical)
-    if args.format == 'CSV':
+    elif args.format == 'CSV':
         report_csv(data, args.historical)
+    elif args.format == 'MD':
+        report_md(data, args.historical)
