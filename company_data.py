@@ -1,3 +1,5 @@
+import locale
+
 from collections import namedtuple
 
 import requests
@@ -48,10 +50,14 @@ class CompanyData:
             CompanyDataRow('Индустрия', r.json()['company']['industry'], False)
         )
         self._data.append(
-            CompanyDataRow('Рыночная капитализация', r.json()['asset']['market_cap'], True)
+            CompanyDataRow('Рыночная капитализация',
+                           self.strfloat(r.json()['asset']['market_cap']),
+                           True)
         )
         self._data.append(
-            CompanyDataRow('Текущая стоимость акции', r.json()['asset']['last_price'], True)
+            CompanyDataRow('Текущая стоимость акции',
+                           self.strfloat(r.json()['asset']['last_price'], 2),
+                           True)
         )
 
         r = requests.get(
@@ -93,37 +99,37 @@ class CompanyData:
 
             self._historical_data.append(
                 (
-                    ' /{}/'.format(year),
-                    '{:.1f}'.format(p / e),
-                    '{:.1f}'.format(p / ocf),
-                    '{:.1f}'.format(p / total_equity),
-                    '{:.1f}'.format(p / revenue),
-                    '{:.1f}'.format(e / total_equity * 100),
-                    '{:.1f}'.format(e / total_assets * 100),
-                    '{:.3f}'.format(net_debt / ebitda),
+                    '/{}/'.format(year),
+                    self.strfloat(p / e),
+                    self.strfloat(p / ocf),
+                    self.strfloat(p / total_equity),
+                    self.strfloat(p / revenue),
+                    self.strfloat(e / total_equity * 100),
+                    self.strfloat(e / total_assets * 100),
+                    self.strfloat(net_debt / ebitda, 3),
                 )
             )
 
         self._data.append(
-            CompanyDataRow('(P/E)', '{:.1f}'.format(p_e), True)
+            CompanyDataRow('(P/E)', self.strfloat(p_e), True)
         )
         self._data.append(
-            CompanyDataRow('(P/OCF)', '{:.1f}'.format(p_ocf), True)
+            CompanyDataRow('(P/OCF)', self.strfloat(p_ocf), True)
         )
         self._data.append(
-            CompanyDataRow('(P/BV)', '{:.1f}'.format(p_bv), True)
+            CompanyDataRow('(P/BV)', self.strfloat(p_bv), True)
         )
         self._data.append(
-            CompanyDataRow('(P/S)', '{:.1f}'.format(p_s), True)
+            CompanyDataRow('(P/S)', self.strfloat(p_s), True)
         )
         self._data.append(
-            CompanyDataRow('(ROE)', '{:.1f}'.format(roe), True)
+            CompanyDataRow('(ROE)', self.strfloat(roe), True)
         )
         self._data.append(
-            CompanyDataRow('(ROA)', '{:.1f}'.format(roa), True)
+            CompanyDataRow('(ROA)', self.strfloat(roa), True)
         )
         self._data.append(
-            CompanyDataRow('(NET DEBT/EBITDA)', '{:.1f}'.format(net_debt_ebitda), True)
+            CompanyDataRow('(NET DEBT/EBITDA)', self.strfloat(net_debt_ebitda, 3), True)
         )
 
         self._valid = True
@@ -139,9 +145,9 @@ class CompanyData:
 
     def get_values(self):
         if self._compact:
-            return [str(d.value) for d in self._data if d.compact]
+            return [d.value for d in self._data if d.compact]
         else:
-            return [str(d.value) for d in self._data]
+            return [d.value for d in self._data]
 
     def get_historical_values(self):
         return self._historical_data
@@ -151,4 +157,7 @@ class CompanyData:
             return 4
         else:
             return 6
+
+    def strfloat(self, val, prec=1):
+        return locale.format_string('%.{}f'.format(prec), val)
 
