@@ -42,7 +42,7 @@ class CompanyData:
         IndicatorDesc('MARKET CAP', 'market_cap', True, 0),
         IndicatorDesc('REVENUE', 'revenue', True, 0),
         IndicatorDesc('PROFIT', 'profit_net', True, 0),
-        IndicatorDesc('OCF', 'cash_oper_activities_net', True, 0),
+        IndicatorDesc('OCF   ', 'cash_oper_activities_net', True, 0),
         IndicatorDesc('ASSETS', 'total_assets', True, 0),
         IndicatorDesc('FIXED ASSETS', 'noncur_assets', False, 0),
         IndicatorDesc('CURRENT ASSETS', 'cur_assets', False, 0),
@@ -66,6 +66,7 @@ class CompanyData:
     def __init__(self, ticker, compact, report_period):
         self._compact = compact
 
+        # getting general info
         r = requests.get(self._company_info_url.format(ticker))
         if r.status_code != 200:
             print('Could not get {} info: {}'.format(ticker, r.status_code))
@@ -97,6 +98,7 @@ class CompanyData:
                            True)
         )
 
+        # getting indicators
         ri = requests.get(
             self._company_indicators_url.format(
                 self._company_id, self._currency, report_period
@@ -106,10 +108,17 @@ class CompanyData:
             print('Could not get {} info: {}'.format(ticker, r.status_code))
             return
 
+        # TODO: make historical with report data
+        # last non historical title
         self._data.append(
-            CompanyDataRow('(EPS)', self.strfloat(ri.json()['last_q']['last_q_data']['eps']), True)
+            CompanyDataRow(
+                '(EPS)',
+                self.strfloat(ri.json()['last_q']['last_q_data']['eps']),
+                True
+            )
         )
 
+        # getting report
         r = requests.get(
             self._company_report_url.format(
                 self._company_id, self._currency, report_period
@@ -137,6 +146,7 @@ class CompanyData:
                 )
             )
 
+        # filling historical data
         self._historical_data = []
         for i, period in enumerate(r.json()['data']):
             if report_period == 'Y':
@@ -172,12 +182,14 @@ class CompanyData:
             return self._historical_data
         data = []
         for r in self._historical_data:
+            # TODO: remove hardcode
             data.append(
                 [v for i, v in enumerate(r) if self._data[i + 5].compact]
             )
         return data
 
     def get_historical_offset(self):
+        # TODO: remove hardcode
         if self._compact:
             return 4
         else:
@@ -187,4 +199,3 @@ class CompanyData:
         if val is None:
             return '-'
         return locale.format_string('%.{}f'.format(prec), val)
-
