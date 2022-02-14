@@ -35,7 +35,7 @@ class CompanyData:
         JsonDataDesc('NET DEBT/EBITDA', 'ebitda_net_rt', True, 3),
         JsonDataDesc('DEBT/EBITDA', 'ebitda_debt_rt', True, 3),
         JsonDataDesc('OCF/DEBT', 'ocf_debt', False, 1),
-        JsonDataDesc('OCF/equity', 'd_e_rt', False, 3),
+        JsonDataDesc('OCF/EQUITY', 'd_e_rt', False, 3),
 
         JsonDataDesc('ROE  ', 'roe', True, 1),
         JsonDataDesc('ROA  ', 'roa', True, 1),
