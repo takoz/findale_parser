@@ -5,7 +5,7 @@ from collections import namedtuple
 import requests
 
 CompanyDataRow = namedtuple('CompanyDataRow', ['title', 'value', 'compact'])
-IndicatorDesc = namedtuple('IndicatorDesc', ['title', 'name', 'compact', 'prec'])
+JsonDataDesc = namedtuple('JosnDataDesc', ['title', 'json_name', 'compact', 'prec'])
 
 class CompanyData:
 
@@ -23,39 +23,42 @@ class CompanyData:
     _compact = False
 
     _indicators = (
-        IndicatorDesc('P/E  ', 'p_e_rt', True, 1),
-        IndicatorDesc('P/OCF', 'p_ocf', True, 1),
-        IndicatorDesc('P/BV ', 'p_bv', True, 1),
-        IndicatorDesc('P/S  ', 'p_s_rt', True, 1),
-        IndicatorDesc('EV/EBITDA', 'ev_ebitda_rt', True, 1),
+        JsonDataDesc('P/E  ', 'p_e_rt', True, 1),
+        JsonDataDesc('P/OCF', 'p_ocf', True, 1),
+        JsonDataDesc('P/BV ', 'p_bv', True, 1),
+        JsonDataDesc('P/S  ', 'p_s_rt', True, 1),
+        JsonDataDesc('EV/EBITDA', 'ev_ebitda_rt', True, 1),
 
-        IndicatorDesc('NET DEBT/EBITDA', 'ebitda_net_rt', True, 3),
-        IndicatorDesc('DEBT/EBITDA', 'ebitda_debt_rt', True, 3),
-        IndicatorDesc('OCF/DEBT', 'ocf_debt', False, 1),
-        IndicatorDesc('OCF/equity', 'd_e_rt', False, 3),
+        JsonDataDesc('NET DEBT/EBITDA', 'ebitda_net_rt', True, 3),
+        JsonDataDesc('DEBT/EBITDA', 'ebitda_debt_rt', True, 3),
+        JsonDataDesc('OCF/DEBT', 'ocf_debt', False, 1),
+        JsonDataDesc('OCF/equity', 'd_e_rt', False, 3),
 
-        IndicatorDesc('ROE  ', 'roe', True, 1),
-        IndicatorDesc('ROA  ', 'roa', True, 1),
+        JsonDataDesc('ROE  ', 'roe', True, 1),
+        JsonDataDesc('ROA  ', 'roa', True, 1),
     )
 
     _report_fields = (
-        IndicatorDesc('MARKET CAP', 'market_cap', True, 0),
-        IndicatorDesc('REVENUE', 'revenue', True, 0),
-        IndicatorDesc('PROFIT', 'profit_net', True, 0),
-        IndicatorDesc('OCF   ', 'cash_oper_activities_net', True, 0),
-        IndicatorDesc('ASSETS', 'total_assets', True, 0),
-        IndicatorDesc('FIXED ASSETS', 'noncur_assets', False, 0),
-        IndicatorDesc('CURRENT ASSETS', 'cur_assets', False, 0),
-        IndicatorDesc('DEBT', 'total_liab', True, 0),
-        IndicatorDesc('LONGTERM DEBT', 'long_liab', False, 0),
-        IndicatorDesc('SHORTTERM DEBT', 'short_liab', False, 0),
-        IndicatorDesc('OTHER DEBT', 'other_liab', False, 0),
-        IndicatorDesc('TOTAL EQUITY', 'total_equity', True, 0),
-        IndicatorDesc('SHAREHOLD EQUITY', 'sharehold_eq', False, 0),
-        IndicatorDesc('RESERVED EQUITY', 'reserv_eq', False, 0)
+        JsonDataDesc('EPS   ', 'eps', True, 1),
+        JsonDataDesc('MARKET CAP', 'market_cap', True, 0),
+        JsonDataDesc('REVENUE', 'revenue', True, 0),
+        JsonDataDesc('PROFIT', 'profit_net', True, 0),
+        JsonDataDesc('OCF   ', 'cash_oper_activities_net', True, 0),
+        JsonDataDesc('ASSETS', 'total_assets', True, 0),
+        JsonDataDesc('FIXED ASSETS', 'noncur_assets', False, 0),
+        JsonDataDesc('CURRENT ASSETS', 'cur_assets', False, 0),
+        JsonDataDesc('DEBT', 'total_liab', True, 0),
+        JsonDataDesc('LONGTERM DEBT', 'long_liab', False, 0),
+        JsonDataDesc('SHORTTERM DEBT', 'short_liab', False, 0),
+        JsonDataDesc('OTHER DEBT', 'other_liab', False, 0),
+        JsonDataDesc('TOTAL EQUITY', 'total_equity', True, 0),
+        JsonDataDesc('SHAREHOLD EQUITY', 'sharehold_eq', False, 0),
+        JsonDataDesc('RESERVED EQUITY', 'reserv_eq', False, 0)
     )
 
-    _company_info_url = 'https://findale.pro/api/company?code={}'
+    _company_info_url = (
+        'https://findale.pro/api/company?code={}'
+    )
     _company_indicators_url = (
         'https://findale.pro/api/report?company_id={}&currency={}&section=ind&type={}'
     )
@@ -105,18 +108,8 @@ class CompanyData:
             )
         )
         if r.status_code != 200:
-            print('Could not get {} info: {}'.format(ticker, r.status_code))
+            print('Could not get {} indicators: {}'.format(ticker, r.status_code))
             return
-
-        # TODO: make historical with report data
-        # last non historical title
-        self._data.append(
-            CompanyDataRow(
-                '(EPS)',
-                self.strfloat(ri.json()['last_q']['last_q_data']['eps']),
-                True
-            )
-        )
 
         # getting report
         r = requests.get(
@@ -125,14 +118,14 @@ class CompanyData:
             )
         )
         if r.status_code != 200:
-            print('Could not get {} info: {}'.format(ticker, r.status_code))
+            print('Could not get {} report: {}'.format(ticker, r.status_code))
             return
 
         for desc in self._report_fields:
             self._data.append(
                 CompanyDataRow(
                     desc.title,
-                    self.strfloat(r.json()['last_q']['last_q_data'].get(desc.name), desc.prec),
+                    self.strfloat(r.json()['last_q']['last_q_data'].get(desc.json_name), desc.prec),
                     desc.compact
                 )
             )
@@ -141,7 +134,7 @@ class CompanyData:
             self._data.append(
                 CompanyDataRow(
                     desc.title,
-                    self.strfloat(ri.json()['last_q']['last_q_data'].get(desc.name), desc.prec),
+                    self.strfloat(ri.json()['last_q']['last_q_data'].get(desc.json_name), desc.prec),
                     desc.compact
                 )
             )
@@ -154,10 +147,10 @@ class CompanyData:
             else:
                 row = ['/{} {}/'.format(period['year'], period['quarter']), ]
             for desc in self._report_fields:
-                row.append(self.strfloat(period['data'].get(desc.name), desc.prec))
+                row.append(self.strfloat(period['data'].get(desc.json_name), desc.prec))
 
             for desc in self._indicators:
-                row.append(self.strfloat(ri.json()['data'][i]['data'].get(desc.name), desc.prec))
+                row.append(self.strfloat(ri.json()['data'][i]['data'].get(desc.json_name), desc.prec))
             self._historical_data.append(row)
 
         self._valid = True
@@ -180,20 +173,33 @@ class CompanyData:
     def get_historical_values(self):
         if not self._compact:
             return self._historical_data
+
+        offset = len(self._data) - len(self._historical_data[0])
         data = []
         for r in self._historical_data:
-            # TODO: remove hardcode
             data.append(
-                [v for i, v in enumerate(r) if self._data[i + 5].compact]
+                [v for i, v in enumerate(r) if self._data[i + offset].compact]
             )
         return data
 
     def get_historical_offset(self):
-        # TODO: remove hardcode
+        offset = (len(self._data) - len(self._historical_data[0]))
         if self._compact:
-            return 4
+            for i in range(offset):
+                if not self._data[i].compact:
+                    offset -= 1
+            return offset
         else:
-            return 6
+            return (len(self._data) - len(self._historical_data[0]))
+
+    def get_historical_count(self):
+        count = len(self._historical_data[0])
+        offset = (len(self._data) - len(self._historical_data[0]))
+        if self._compact:
+            for i in range(count):
+                if not self._data[offset+i].compact:
+                    count -= 1
+        return count
 
     def strfloat(self, val, prec=1):
         if val is None:

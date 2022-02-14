@@ -10,10 +10,10 @@ def get_offset_strings(data):
             lens[i] = max(len(d.get_values()[i]), lens[i])
 
     hist_lens = [0, ]
-    for i in range(data[0].get_historical_offset()):
+    for i in range(data[0].get_historical_offset() + 1):
         hist_lens[0] += (lens[i] + len(dltr))
     hist_lens[0] -= len(dltr)
-    for i in range(data[0].get_historical_offset(), len(lens)):
+    for i in range(data[0].get_historical_offset() + 1, len(lens)):
         hist_lens.append(lens[i])
 
     return (
@@ -50,10 +50,9 @@ def report_csv(data, historical):
     row = data[0]
 
     offsets_string = dltr.join('{}' for t in row.get_titles())
-    historical_values_count = len(row.get_titles()) - row.get_historical_offset() + 1
     hist_offsets_string = '{}{}'.format(
-        dltr * (row.get_historical_offset() - 1),
-        dltr.join('{}' for i in range(historical_values_count))
+        dltr * (row.get_historical_offset()),
+        dltr.join('{}' for i in range(row.get_historical_count()))
     )
 
     print(offsets_string.format(*row.get_titles()))
@@ -73,10 +72,9 @@ def report_md(data, historical):
     row = data[0]
 
     offsets_string = '|{}|'.format(dltr.join('{}' for t in row.get_titles()))
-    historical_values_count = len(row.get_titles()) - row.get_historical_offset() + 1
     hist_offsets_string = '|{}{}|'.format(
-        (' ' + dltr) * (row.get_historical_offset() - 1),
-        dltr.join('{}' for i in range(historical_values_count))
+        (' ' + dltr) * (row.get_historical_offset()),
+        dltr.join('{}' for i in range(row.get_historical_count()))
     )
 
     print(offsets_string.format(*row.get_titles()))
