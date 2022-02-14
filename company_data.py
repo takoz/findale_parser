@@ -4,8 +4,13 @@ from collections import namedtuple
 
 import requests
 
-CompanyDataRow = namedtuple('CompanyDataRow', ['title', 'value'])
-JsonDataDesc = namedtuple('JosnDataDesc', ['title', 'json_name', 'compact', 'prec'])
+CompanyDataRow = namedtuple(
+    'CompanyDataRow', ['title', 'value']
+)
+
+JsonDataDesc = namedtuple(
+    'JosnDataDesc', ['title', 'json_name', 'compact', 'prec']
+)
 
 class CompanyData:
 
@@ -58,10 +63,12 @@ class CompanyData:
         'https://findale.pro/api/company?code={}'
     )
     _company_indicators_url = (
-        'https://findale.pro/api/report?company_id={}&currency={}&section=ind&type={}'
+        'https://findale.pro/api/report?company_id={}'
+        '&currency={}&section=ind&type={}'
     )
     _company_report_url = (
-        'https://findale.pro/api/report?company_id={}&currency={}&section=rep&type={}'
+        'https://findale.pro/api/report?company_id={}'
+        '&currency={}&section=rep&type={}'
     )
 
     def __init__(self, ticker, compact, report_period):
@@ -104,7 +111,9 @@ class CompanyData:
             )
         )
         if r.status_code != 200:
-            print('Could not get {} indicators: {}'.format(ticker, r.status_code))
+            print(
+                'Could not get {} indicators: {}'.format(ticker, r.status_code)
+            )
             return
 
         # getting report
@@ -123,7 +132,10 @@ class CompanyData:
             self._data.append(
                 CompanyDataRow(
                     desc.title,
-                    self.strfloat(r.json()['last_q']['last_q_data'].get(desc.json_name), desc.prec)
+                    self.strfloat(
+                        r.json()['last_q']['last_q_data'].get(desc.json_name),
+                        desc.prec
+                    )
                 )
             )
 
@@ -133,7 +145,10 @@ class CompanyData:
             self._data.append(
                 CompanyDataRow(
                     desc.title,
-                    self.strfloat(ri.json()['last_q']['last_q_data'].get(desc.json_name), desc.prec)
+                    self.strfloat(
+                        ri.json()['last_q']['last_q_data'].get(desc.json_name),
+                        desc.prec
+                    )
                 )
             )
 
@@ -148,14 +163,19 @@ class CompanyData:
                 if compact and not desc.compact:
                     continue
                 row.append(
-                    self.strfloat(period['data'].get(desc.json_name), desc.prec)
+                    self.strfloat(
+                        period['data'].get(desc.json_name), desc.prec
+                    )
                 )
 
             for desc in self._indicators:
                 if compact and not desc.compact:
                     continue
                 row.append(
-                    self.strfloat(ri.json()['data'][i]['data'].get(desc.json_name), desc.prec)
+                    self.strfloat(
+                        ri.json()['data'][i]['data'].get(desc.json_name),
+                        desc.prec
+                    )
                 )
 
             self._historical_data.append(row)

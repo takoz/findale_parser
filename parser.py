@@ -16,10 +16,12 @@ if __name__ == '__main__':
         '-i', '--historical', action='store_true', help='show historical data'
     )
     parser.add_argument(
-        '-f', '--format', choices=['CONSOLE', 'CSV', 'MD'], default='CONSOLE', help='output format'
+        '-f', '--format', choices=['CONSOLE', 'CSV', 'MD'],
+        default='CONSOLE', help='output format'
     )
     parser.add_argument(
-        '-p', '--period', choices=['Y', 'Q'], default='Y', help='historical data period'
+        '-p', '--period', choices=['Y', 'Q'],
+        default='Y', help='historical data period'
     )
     parser.add_argument(
         'tickers', metavar='T', type=str, nargs='+', help='tickers'

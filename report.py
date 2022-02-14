@@ -19,7 +19,8 @@ def get_offset_strings(data):
     return (
         lens, dltr.join('{{:{}}}'.format(l) for l in lens),
         hist_lens, '{{:>{}}}{}{}'.format(
-            hist_lens[0], dltr, dltr.join('{{:{}}}'.format(l) for l in hist_lens[1:])
+            hist_lens[0], dltr,
+            dltr.join('{{:{}}}'.format(l) for l in hist_lens[1:])
         )
     )
 
@@ -28,7 +29,9 @@ def report_console(data, historical):
         print('Dataset is empty')
         return
 
-    lens, offsets_string, hist_lens, hist_offsets_string = get_offset_strings(data)
+    lens, offsets_string, hist_lens, hist_offsets_string = get_offset_strings(
+        data
+    )
     total_len = sum(lens) + len(lens)*len(dltr) - len(dltr)
 
     print(offsets_string.format(*data[0].get_titles()))
@@ -78,7 +81,9 @@ def report_md(data, historical):
     )
 
     print(offsets_string.format(*row.get_titles()))
-    print(offsets_string.format(*[ '---' for i in range(len(row.get_titles()))]))
+    print(offsets_string.format(
+        *[ '---' for i in range(len(row.get_titles()))])
+    )
     for d in data:
         print(offsets_string.format(*d.get_values()))
         if not historical:
