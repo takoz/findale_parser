@@ -4,7 +4,7 @@ from collections import namedtuple
 
 import requests
 
-CompanyDataRow = namedtuple('CompanyDataRow', ['title', 'value', 'compact'])
+CompanyDataRow = namedtuple('CompanyDataRow', ['title', 'value'])
 JsonDataDesc = namedtuple('JosnDataDesc', ['title', 'json_name', 'compact', 'prec'])
 
 class CompanyData:
@@ -19,8 +19,6 @@ class CompanyData:
     _market_code = None
     _industry_id = None
     _sector_id = None
-
-    _compact = False
 
     _indicators = (
         JsonDataDesc('P/E  ', 'p_e_rt', True, 1),
@@ -67,8 +65,6 @@ class CompanyData:
     )
 
     def __init__(self, ticker, compact, report_period):
-        self._compact = compact
-
         # getting general info
         r = requests.get(self._company_info_url.format(ticker))
         if r.status_code != 200:
@@ -84,21 +80,21 @@ class CompanyData:
         self._data = []
 
         self._data.append(
-            CompanyDataRow('TICKER', ticker, True)
+            CompanyDataRow('TICKER', ticker)
         )
         self._data.append(
-            CompanyDataRow('NAME', r.json()['company']['name'], True)
+            CompanyDataRow('NAME', r.json()['company']['name'])
         )
-        self._data.append(
-            CompanyDataRow('SECTOR', r.json()['company']['sector'], False)
-        )
-        self._data.append(
-            CompanyDataRow('INDUSTRY', r.json()['company']['industry'], False)
-        )
+        if not compact:
+            self._data.append(
+                CompanyDataRow('SECTOR', r.json()['company']['sector'])
+            )
+            self._data.append(
+                CompanyDataRow('INDUSTRY', r.json()['company']['industry'])
+            )
         self._data.append(
             CompanyDataRow('SHARE PRICE',
-                           self.strfloat(r.json()['asset']['last_price'], 2),
-                           True)
+                           self.strfloat(r.json()['asset']['last_price'], 2))
         )
 
         # getting indicators
@@ -122,20 +118,22 @@ class CompanyData:
             return
 
         for desc in self._report_fields:
+            if compact and not desc.compact:
+                continue
             self._data.append(
                 CompanyDataRow(
                     desc.title,
-                    self.strfloat(r.json()['last_q']['last_q_data'].get(desc.json_name), desc.prec),
-                    desc.compact
+                    self.strfloat(r.json()['last_q']['last_q_data'].get(desc.json_name), desc.prec)
                 )
             )
 
         for desc in self._indicators:
+            if compact and not desc.compact:
+                continue
             self._data.append(
                 CompanyDataRow(
                     desc.title,
-                    self.strfloat(ri.json()['last_q']['last_q_data'].get(desc.json_name), desc.prec),
-                    desc.compact
+                    self.strfloat(ri.json()['last_q']['last_q_data'].get(desc.json_name), desc.prec)
                 )
             )
 
@@ -147,10 +145,19 @@ class CompanyData:
             else:
                 row = ['/{} {}/'.format(period['year'], period['quarter']), ]
             for desc in self._report_fields:
-                row.append(self.strfloat(period['data'].get(desc.json_name), desc.prec))
+                if compact and not desc.compact:
+                    continue
+                row.append(
+                    self.strfloat(period['data'].get(desc.json_name), desc.prec)
+                )
 
             for desc in self._indicators:
-                row.append(self.strfloat(ri.json()['data'][i]['data'].get(desc.json_name), desc.prec))
+                if compact and not desc.compact:
+                    continue
+                row.append(
+                    self.strfloat(ri.json()['data'][i]['data'].get(desc.json_name), desc.prec)
+                )
+
             self._historical_data.append(row)
 
         self._valid = True
@@ -159,47 +166,19 @@ class CompanyData:
         return self._valid
 
     def get_titles(self):
-        if self._compact:
-            return [d.title for d in self._data if d.compact]
-        else:
-            return [d.title for d in self._data]
+        return [d.title for d in self._data]
 
     def get_values(self):
-        if self._compact:
-            return [d.value for d in self._data if d.compact]
-        else:
-            return [d.value for d in self._data]
+        return [d.value for d in self._data]
 
     def get_historical_values(self):
-        if not self._compact:
-            return self._historical_data
-
-        offset = len(self._data) - len(self._historical_data[0])
-        data = []
-        for r in self._historical_data:
-            data.append(
-                [v for i, v in enumerate(r) if self._data[i + offset].compact]
-            )
-        return data
+        return self._historical_data
 
     def get_historical_offset(self):
-        offset = (len(self._data) - len(self._historical_data[0]))
-        if self._compact:
-            for i in range(offset):
-                if not self._data[i].compact:
-                    offset -= 1
-            return offset
-        else:
-            return (len(self._data) - len(self._historical_data[0]))
+        return (len(self._data) - len(self._historical_data[0]))
 
     def get_historical_count(self):
-        count = len(self._historical_data[0])
-        offset = (len(self._data) - len(self._historical_data[0]))
-        if self._compact:
-            for i in range(count):
-                if not self._data[offset+i].compact:
-                    count -= 1
-        return count
+        return len(self._historical_data[0])
 
     def strfloat(self, val, prec=1):
         if val is None:
