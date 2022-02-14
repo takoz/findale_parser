@@ -71,7 +71,11 @@ class CompanyData:
         '&currency={}&section=rep&type={}'
     )
 
+    _compact = False
+
     def __init__(self, ticker, compact, report_period):
+        self._compact = compact
+
         # getting general info
         r = requests.get(self._company_info_url.format(ticker))
         if r.status_code != 200:
@@ -101,7 +105,7 @@ class CompanyData:
             )
         self._data.append(
             CompanyDataRow('SHARE PRICE',
-                           self.strfloat(r.json()['asset']['last_price'], 2))
+                           self.strfloat(r.json()['asset']['last_price'], 4))
         )
 
         # getting indicators
@@ -200,7 +204,21 @@ class CompanyData:
     def get_historical_count(self):
         return len(self._historical_data[0])
 
-    def strfloat(self, val, prec=1):
+    @staticmethod
+    def strfloat(val, prec=1):
         if val is None:
             return '-'
         return locale.format_string('%.{}f'.format(prec), val)
+
+    def get_precisions(self):
+        precisions = []
+        for r in self._report_fields:
+            if self._compact and not r.compact:
+                continue
+            precisions.append(r.prec)
+        for r in self._indicators:
+            if self._compact and not r.compact:
+                continue
+            precisions.append(r.prec)
+
+        return precisions

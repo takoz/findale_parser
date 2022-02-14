@@ -1,4 +1,27 @@
+import statistics
+import locale
+
+from company_data import CompanyData
+
 dltr = '  '
+
+def get_medians(data):
+    medians = ['MEDIAN', ]
+    dataset = []
+    for d in data:
+        dataset.append(
+            [locale.atof(v) for v in d.get_values()[d.get_historical_offset() + 1:]]
+        )
+
+    for i in range(len(dataset[0])):
+        prec = data[0].get_precisions()[i]
+        medians.append(
+            CompanyData.strfloat(
+                statistics.median([values[i] for values in dataset]), prec
+            )
+        )
+    return medians
+
 
 def get_offset_strings(data):
     titles = data[0].get_titles()
@@ -43,6 +66,7 @@ def report_console(data, historical):
         for v in d.get_historical_values():
             print(hist_offsets_string.format(*v))
         print('-' * total_len)
+    print(hist_offsets_string.format(*get_medians(data)))
 
 def report_csv(data, historical):
     dltr = ';'
@@ -65,6 +89,7 @@ def report_csv(data, historical):
             continue
         for v in d.get_historical_values():
             print(hist_offsets_string.format(*v))
+    print(hist_offsets_string.format(*get_medians(data)))
 
 def report_md(data, historical):
     dltr = '|'
@@ -90,3 +115,4 @@ def report_md(data, historical):
             continue
         for v in d.get_historical_values():
             print(hist_offsets_string.format(*v))
+    print(hist_offsets_string.format(*get_medians(data)))
